@@ -7,10 +7,47 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D 
 #QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
+class MainDialog(QDialog):
+    switch_window = QtCore.pyqtSignal()
+
+    def __init__(self):
+
+        QDialog.__init__(self, None)
+
+        self.logo_button = QPushButton(self)
+        self.logo_button.resize(260, 464)
+        self.logo_button.move(150,50)
+        self.logo_button.setStyleSheet("QPushButton{image:url(./image/logo.png); border:0px;}")
+
+        self.team_logo_button = QPushButton(self)
+        self.team_logo_button.resize(100, 25)
+        self.team_logo_button.move(0,0)
+        self.team_logo_button.setStyleSheet("QPushButton{image:url(./image/team_logo.png); border:0px;}")
+
+        self.enter_button = QPushButton(self)
+        self.enter_button.resize(144, 46)
+        self.enter_button.move(208,450)
+        self.enter_button.setStyleSheet(
+            """
+            QPushButton{image:url(./image/enter.png); border:0px;}
+            QPushButton:hover{image:url(./image/enter_hover.png); border:0px;}
+                    
+            """)
+
+
+        self.enter_button.clicked.connect(self.enter)
+        
+
+        self.setStyleSheet("QDialog{background: 'white';}")
+        self.resize(560,680)
+        self.show()
+    
+    def enter(self):
+        self.switch_window.emit()
 
 
 class MainApp(QMainWindow):
@@ -97,9 +134,32 @@ class CWidget(QWidget):
 
     def closeEvent(self, e):
         pass
-         
- 
+
+
+
+class Controller:
+
+    def __init__(self):
+        self.show_main()
+
+    def show_main(self):
+        self.window = MainDialog()
+        self.window.switch_window.connect(self.show_command)
+        try :
+            self.window_command.close()
+            self.window.show()
+        except :
+            self.window.show()
+
+    def show_command(self):
+        self.window_command = MainApp()
+        #self.window_command.switch_window.connect(self.show_main)
+        self.window.close()
+        self.window_command.show()
+
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    w = MainApp()
+    w = Controller()
     sys.exit(app.exec_())

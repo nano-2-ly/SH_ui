@@ -22,29 +22,23 @@ class MainApp(QMainWindow):
 
     def initUI(self):
 
-        page = QHBoxLayout()
-        control = QHBoxLayout()
-        viewer = QHBoxLayout()
+        #page = QHBoxLayout()
+        btn_layout = QHBoxLayout()
+        canvas_layout = QHBoxLayout()
+        layout = QHBoxLayout()
         
-        '''
         b1 = QPushButton("Button1")
-        b1.setLayout(control)
 
-        centralwidget = CWidget()
-        centralwidget.setLayout(viewer)
-        self.setCentralWidget(centralwidget)
-        '''
+        btn_layout.addWidget(b1)
 
-        b1 = CWidget()
-        control.addWidget(b1)
 
-        centralwidget = CWidget()
-        control.addWidget(b1)
-        self.setCentralWidget(centralwidget)
-        self.setLayout(control)
-        self.setLayout(viewer)
 
+        centralWidget= CWidget()
+        canvas_layout.addWidget(centralWidget)
         
+        self.setCentralWidget(centralWidget)
+
+
         self.show()
 
 
@@ -77,6 +71,10 @@ class CWidget(QWidget):
     def initUI(self):
         vbox = QVBoxLayout()
         vbox.addWidget(self.canvas)
+        
+        
+        b1 = QPushButton("Button1")
+        vbox.addWidget(b1)
  
         self.setLayout(vbox)
         #self.setGeometry(0,0,800,400)

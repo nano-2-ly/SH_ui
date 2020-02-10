@@ -10,6 +10,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5.QtGui import QPainter,QColor
+from PyQt5.QtGui import QPainter, QBrush, QPen
+ 
 
 class MainDialog(QDialog):
     switch_window = QtCore.pyqtSignal()
@@ -17,6 +20,14 @@ class MainDialog(QDialog):
     def __init__(self):
 
         QDialog.__init__(self, None)
+
+        width = 0
+        height = 0  
+
+        qp = QPainter()
+        qp.begin(self)           
+        qp.drawRect(0, 0, width, height)        
+        qp.end()
 
         self.logo_button = QPushButton(self)
         self.logo_button.resize(260, 464)
@@ -27,6 +38,7 @@ class MainDialog(QDialog):
         self.team_logo_button.resize(100, 25)
         self.team_logo_button.move(0,0)
         self.team_logo_button.setStyleSheet("QPushButton{image:url(./image/team_logo.png); border:0px;}")
+
 
         self.enter_button = QPushButton(self)
         self.enter_button.resize(144, 46)
@@ -75,7 +87,7 @@ class MainApp(QMainWindow):
         
         self.setCentralWidget(centralWidget)
 
-
+        self.resize(560,680)
         self.show()
 
 
@@ -84,7 +96,7 @@ class CWidget(QWidget):
     def __init__(self):
         super().__init__()
         # for PyQt embedding
-        self.fig = plt.Figure()
+        self.fig = plt.Figure(figsize=(10, 5))
         
         self.canvas = FigureCanvasQTAgg(self.fig)
 
@@ -100,20 +112,68 @@ class CWidget(QWidget):
             self.zarray[:,:,i] = self.f(self.x,self.y,1.5+np.sin(i*2*np.pi/self.frn))
 
         self.initUI()
+
+
+    def paintEvent(self, event):
+        height = self.size().height() 
+        width = self.size().width()
+        painter = QPainter(self)
+
+        painter.setPen(QPen(QColor(46,61,80),  5, Qt.SolidLine))
+        painter.setBrush(QBrush(QColor(46,61,80), Qt.SolidPattern))
+        painter.drawRect(0, 0, width/4.4, height)
     
     def f(self, x, y, i):
         print(i)
         return np.sin(np.sqrt((x + i)** 2 + (y + i) ** 2))
 
     def initUI(self):
-        vbox = QVBoxLayout()
+        painter = QPainter(self)
+        painter.setPen(QPen(Qt.black, 5, Qt.SolidLine))
+        #painter.setBrush(QBrush(Qt.red, Qt.SolidPattern))
+        painter.setBrush(QBrush(Qt.green, Qt.DiagCrossPattern))
+        painter.drawRect(100, 15, 400 ,200)
+        
+        
+        layout = QVBoxLayout()
+
+
+        vbox = QHBoxLayout()
+        vbox.setSpacing(20)
+
+        menu = QVBoxLayout()
+        menu.setAlignment(QtCore.Qt.AlignCenter)
+        menu.setSpacing(40)
+
+        b1 = QPushButton("save")
+        b1.setStyleSheet("QPushButton { background-color: #2E3D50;color:#ffffff; border: none; font-weight: regular; font-size: 15pt;font-family: Calibri;}")
+        menu.addWidget(b1)
+        b2 = QPushButton("reset")
+        b2.setStyleSheet("QPushButton { background-color: #2E3D50;color:#ffffff; border: none; font-weight: regular; font-size: 15pt;font-family: Calibri;}")
+        menu.addWidget(b2)
+        b3 = QPushButton("connect")
+        b3.setStyleSheet("QPushButton { background-color: #2E3D50;color:#ffffff; border: none; font-weight: regular; font-size: 15pt;font-family: Calibri;}")
+        menu.addWidget(b3)
+        b4 = QPushButton("option")
+        b4.setStyleSheet("QPushButton { background-color: #2E3D50;color:#ffffff; border: none; font-weight: regular; font-size: 15pt;font-family: Calibri;}")
+        menu.addWidget(b4)
+
+        
+        vbox.addLayout(menu)
+        vbox.setStretchFactor(menu, 1)
+        
         vbox.addWidget(self.canvas)
-        
-        
-        b1 = QPushButton("Button1")
-        vbox.addWidget(b1)
- 
+        vbox.setStretchFactor(self.canvas, 4)
         self.setLayout(vbox)
+
+        status = QLineEdit()
+        layout.addWidget(status)
+        layout.addLayout(vbox)
+        
+        layout.setStretchFactor(vbox, 1)
+        layout.setStretchFactor(status, 4)
+        self.setLayout(layout)
+
         #self.setGeometry(0,0,800,400)
          
         # 1~1 중 1번째(1,1,1)  서브 챠트 생성

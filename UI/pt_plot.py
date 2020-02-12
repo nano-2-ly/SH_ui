@@ -1,4 +1,5 @@
 import sys
+import serial
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QMainWindow, QPushButton
 import matplotlib.pyplot as plt
@@ -96,20 +97,28 @@ class CWidget(QWidget):
     def __init__(self):
         super().__init__()
         # for PyQt embedding
-        self.fig = plt.Figure(figsize=(10, 5))
+        self.fig = plt.Figure(figsize=(100, 50))
         
         self.canvas = FigureCanvasQTAgg(self.fig)
 
-        self.N = 50 # Meshsize
-        self.fps = 100 # frame per sec
-        self.frn = 100 # frame number of the animation
+        self.row =  64# Meshsize
+        self.col = 32
+        self.fps = 1000 # frame per sec
+        self.frn = 10 # frame number of the animation
 
-        self.x = np.linspace(-4,4,self.N+1)
-        self.x, self.y = np.meshgrid(self.x, self.x)
-        self.zarray = np.zeros((self.N+1, self.N+1, self.frn))
+        self.x = np.linspace(-4,4,self.col)
+        self.y = np.linspace(-4,4,self.row)
+        self.x, self.y = np.meshgrid(self.x, self.y)
         
-        for i in range(self.frn):
-            self.zarray[:,:,i] = self.f(self.x,self.y,1.5+np.sin(i*2*np.pi/self.frn))
+        self.zarray = np.zeros([64,32])
+
+
+        self.ser  = serial.Serial("COM4", baudrate= 115200, 
+            timeout=2.5, 
+            parity=serial.PARITY_NONE, 
+            bytesize=serial.EIGHTBITS, 
+            stopbits=serial.STOPBITS_ONE
+            )
 
         self.initUI()
 
@@ -179,18 +188,48 @@ class CWidget(QWidget):
         # 1~1 중 1번째(1,1,1)  서브 챠트 생성
         self.ax = self.fig.add_subplot(111, projection='3d')         
         # 2D line
-        self.plot = [self.ax.plot_surface(self.x, self.y, self.zarray[:,:,0], color='0.75', rstride=1, cstride=1)]
+        self.plot = [self.ax.plot_surface(self.x, self.y, self.zarray, color='0.75', rstride=1, cstride=1)]
         self.ax.set_zlim(0,1.1)
-        ani = animation.FuncAnimation(self.fig, self.update_plot, self.frn, fargs=(self.zarray, self.plot), interval=1000/self.fps)
+        ani = animation.FuncAnimation(self.fig, self.update_plot, interval=1000/self.fps)
 
         self.canvas.draw()
  
         #self.show()      
-    def update_plot(self, frame_number, zarray, plot):
+    def update_plot(self,frame_number):
         self.plot[0].remove()
-        self.plot[0] = self.ax.plot_surface(self.x, self.y, zarray[:,:,frame_number], cmap="hot")
+        #self.plot[0] = self.ax.plot_surface(self.x, self.y, zarray[:,:,frame_number], cmap="hot")
+        #self.plot[0] = self.ax.plot_surface(self.x, self.y, zarray[:,:,frame_number], cmap="viridis")
 
- 
+        self.plot[0] = self.ax.plot_surface(self.x, self.y, self.receive_data(), cmap="viridis")
+
+    def receive_data(self):
+        while True:
+            data = self.ser.readline().decode("utf-8")
+            data = str(data).replace('\r\n', '').split(' ')
+            data[:-1] = list(map(int, data[:-1]))
+            data[:-1] = np.divide(data[:-1],100)
+            print(data)
+            try : 
+                print(data_set)
+            except : 
+                pass
+            print( ' ')
+            print( ' ')
+            print( ' ')
+
+            if 'a' in data:
+                data_set = np.array(data[:-1])
+
+            elif 'b' in data:
+                data_set = np.vstack([data_set, data[:-1]])
+
+            elif 'c' in data:
+                data_set = np.vstack([data_set, data[:-1]])
+                return data_set
+
+            else :
+                print(data)
+
 
     def closeEvent(self, e):
         pass

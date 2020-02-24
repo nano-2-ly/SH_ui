@@ -113,7 +113,7 @@ class CWidget(QWidget):
         self.zarray = np.zeros([64,32])
 
 
-        self.ser  = serial.Serial("COM4", baudrate= 115200, 
+        self.ser  = serial.Serial("COM3", baudrate= 2000000, 
             timeout=2.5, 
             parity=serial.PARITY_NONE, 
             bytesize=serial.EIGHTBITS, 
@@ -133,7 +133,7 @@ class CWidget(QWidget):
         painter.drawRect(0, 0, width/4.4, height)
     
     def f(self, x, y, i):
-        print(i)
+        # print(i)
         return np.sin(np.sqrt((x + i)** 2 + (y + i) ** 2))
 
     def initUI(self):
@@ -199,36 +199,42 @@ class CWidget(QWidget):
         self.plot[0].remove()
         #self.plot[0] = self.ax.plot_surface(self.x, self.y, zarray[:,:,frame_number], cmap="hot")
         #self.plot[0] = self.ax.plot_surface(self.x, self.y, zarray[:,:,frame_number], cmap="viridis")
-
-        self.plot[0] = self.ax.plot_surface(self.x, self.y, self.receive_data(), cmap="viridis")
+        while True:
+            # try:
+            self.plot[0] = self.ax.plot_surface(self.x, self.y, self.receive_data(), cmap="viridis")
+            break
+            # except:
+            #     continue
 
     def receive_data(self):
         while True:
-            data = self.ser.readline().decode("utf-8")
-            data = str(data).replace('\r\n', '').split(' ')
-            data[:-1] = list(map(int, data[:-1]))
-            data[:-1] = np.divide(data[:-1],100)
-            print(data)
-            try : 
-                print(data_set)
-            except : 
-                pass
-            print( ' ')
-            print( ' ')
-            print( ' ')
+            try:
+                data = self.ser.readline().decode("utf-8")
+                data = str(data).replace('\r\n', '').split(' ')[:-2]
+                data[1:] = list(map(int, data[1:]))
+                data[1:] = np.divide(data[1:],100)
+                # print(data)
+                # try : 
+                #     print(data_set)
+                # except : 
+                #     pass
+                # print( ' ')
+                # print( ' ')
+                # print( ' ')
 
-            if 'a' in data:
-                data_set = np.array(data[:-1])
+                if 'a' in data:
+                    data_set = np.array(data[1:])
 
-            elif 'b' in data:
-                data_set = np.vstack([data_set, data[:-1]])
+                elif 'b' in data:
+                    data_set = np.vstack([data_set, data[1:]])
 
-            elif 'c' in data:
-                data_set = np.vstack([data_set, data[:-1]])
-                return data_set
-
-            else :
-                print(data)
+                elif 'c' in data:
+                    data_set = np.vstack([data_set, data[1:]])
+                    return data_set
+            
+            except :
+                continue
+            
 
 
     def closeEvent(self, e):

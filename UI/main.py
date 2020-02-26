@@ -8,6 +8,8 @@ import numpy as np
 from PyQt5.QtGui import QPainter,QColor
 from PyQt5.QtGui import QPainter, QBrush, QPen
 import serial.tools.list_ports
+import csv
+import datetime
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
  
@@ -23,7 +25,7 @@ class CWidget(QWidget):
         # for PyQt embedding
         self.fig = plt.Figure()
         self.ax = self.fig.add_subplot(111)      
-        self.im = self.ax.imshow(self.arr[0], animated=True, vmin=-1, vmax=100)
+        self.im = self.ax.imshow(self.arr[0], animated=True, vmin=-1, vmax=300)
         self.canvas = FigureCanvasQTAgg(self.fig)
         
 
@@ -36,6 +38,12 @@ class CWidget(QWidget):
     def initUI(self):
 
         self.menu = QVBoxLayout()
+
+        self.combo_label = QLabel(self)
+        self.combo_label.setText('Port')
+        self.combo_label.setAlignment(Qt.AlignCenter)
+        self.combo_label.setStyleSheet("QLabel { background-color: #2E3D50;color:#ffffff; border: none; font-weight: regular; font-size: 15pt;font-family: Calibri;}")
+        
 
         self.combo = QComboBox(self)
         self.ports = list(serial.tools.list_ports.comports())
@@ -56,7 +64,10 @@ class CWidget(QWidget):
         self.save_button = QPushButton("save")
         self.save_button.resize(260, 464)
         #self.save_button.move(150,50)
-        self.save_button.setStyleSheet("QPushButton { background-color: #2E3D50;color:#ffffff; border:  1px solid white; font-weight: regular; font-size: 15pt;font-family: Calibri;}")
+        self.save_button.setStyleSheet("""
+            QPushButton { background-color: #2E3D50;color:#ffffff; border:  1px solid white; font-weight: regular; font-size: 15pt;font-family: Calibri;}
+            QPushButton:hover{ background-color: #2E3D50; color:#ffffff;border: 3px solid white; font-weight: bold; font-size: 15pt;font-family: Calibri;}
+            """)
         # self.logo_button.setStyleSheet("QPushButton{image:url(./image/logo.png); border:0px;}")
 
         self.sense_value = QLineEdit("100")
@@ -66,7 +77,7 @@ class CWidget(QWidget):
         #self.option_button.setStyleSheet("QPushButton { background-color: #2E3D50;color:#ffffff; border: none; font-weight: regular; font-size: 15pt;font-family: Calibri;}")
         
         self.sense_slider = QSlider(Qt.Horizontal) 
-        self.sense_slider.setRange(0, 100)
+        self.sense_slider.setRange(1, 100)
         
 
         self.threshold_value = QLineEdit("0")
@@ -79,14 +90,18 @@ class CWidget(QWidget):
 
         #self.verticalSpacer = QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
 
-        self.menu.addWidget(self.save_button)
-        self.menu.addSpacing(50)
+        self.menu.addWidget(self.combo_label)
+        self.menu.addWidget(self.combo)
+        
+        self.menu.addSpacing(10)
         self.menu.addWidget(self.sense_label)
         self.menu.addWidget(self.sense_value)
         self.menu.addWidget(self.sense_slider)
         self.menu.addWidget(self.threshold_label)
         self.menu.addWidget(self.threshold_value)
         self.menu.addWidget(self.threshold_slider)
+        self.menu.addSpacing(50)
+        self.menu.addWidget(self.save_button)
 
         self.menu.setSpacing(0)
         self.menu.setContentsMargins(0,0,0,0)
@@ -100,7 +115,7 @@ class CWidget(QWidget):
         vbox.addLayout(self.menu)
         vbox.addWidget(self.canvas)
 
-
+        self.save_button.clicked.connect(self.save_csv)
         self.threshold_slider.setValue(0)
         self.threshold_slider.valueChanged.connect(self.threshold_slider_value_changed)
         self.threshold_value.textChanged.connect(self.threshold_value_changed)
@@ -124,8 +139,17 @@ class CWidget(QWidget):
         #self.ani = animation.FuncAnimation(self.fig, self.updatefig, blit=True)
         #self.canvas.draw()
         print(self.canvas.size())
-
+        self.ani = animation.FuncAnimation(self.fig, self.updatefig, blit=True)
+        self.canvas.draw()
         self.show()   
+
+    def save_csv(self,):
+        f = open('./data/{}.csv'.format(datetime.datetime.now().strftime("%m-%d-%Y-%H-%M-%S")), 'w', encoding='utf-8', newline='')
+        wr = csv.writer(f)
+
+        for i in range(64):
+            wr.writerow(self.data[i])
+
 
     def onChanged(self, text):
         self.ser  = serial.Serial("COM3", baudrate= 115200, 
@@ -159,27 +183,29 @@ class CWidget(QWidget):
     def threshold_value_changed(self):
         try:
             if self.threshold_value.text() == '':
-                self.threshold_slider.setValue(0)
+                self.threshold_slider.setValue(1)
+            elif self.threshold_value.text() == '0':
+                self.threshold_slider.setValue(1)
             else:
                 self.threshold_slider.setValue(int(self.threshold_value.text()))
         except:
-            self.threshold_slider.setValue(0)
+            self.threshold_slider.setValue(1)
 
     def threshold_slider_value_changed(self):
         self.threshold_value.setText(str(self.threshold_slider.value()))
-        print(self.threshold_slider.value())
+        #print(self.threshold_slider.value())
 
     def sense_value_changed(self):
         try:
             if self.sense_value.text() == '':
-                self.sense_slider.setValue(2)
+                self.sense_slider.setValue(1)
             else:
                 self.sense_slider.setValue(int(self.sense_value.text()))
         except:
             self.sense_slider.setValue(0)
     def sense_slider_value_changed(self):
         self.sense_value.setText(str(self.sense_slider.value()))
-        print(self.sense_slider.value())
+        #print(self.sense_slider.value())
 
     def closeEvent(self, e):
         pass
@@ -217,10 +243,13 @@ class CWidget(QWidget):
             #    print(data)
 
     def updatefig(self,*args):
-        c= receive_data()
+        #c= receive_data()
+        #print('hi')
+        c = np.random.randn(64,32)
         c = self.Sensitivity(c)
         c = self.Threshold(c)
-        self.im.set_array(c)
+        self.data = c  
+        self.im.set_array(self.data)
         return self.im,
 
     def Sensitivity(self, data):

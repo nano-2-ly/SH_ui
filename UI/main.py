@@ -19,13 +19,13 @@ class CWidget(QWidget):
         super().__init__()
         self.arr=[]
         
-        for i in range(5):
+        for _ in range(5):
             c=np.random.rand(64,32)
             self.arr.append(c)
         # for PyQt embedding
         self.fig = plt.Figure()
         self.ax = self.fig.add_subplot(111)      
-        self.im = self.ax.imshow(self.arr[0], animated=True, vmin=-1, vmax=300)
+        self.im = self.ax.imshow(self.arr[0], animated=True, vmin=-1, vmax=4)
         self.canvas = FigureCanvasQTAgg(self.fig)
         
 
@@ -36,6 +36,7 @@ class CWidget(QWidget):
         self.initUI()
  
     def initUI(self):
+        self.connect_status = 0
 
         self.menu = QVBoxLayout()
 
@@ -46,10 +47,21 @@ class CWidget(QWidget):
         
 
         self.combo = QComboBox(self)
+        self.combo.addItem('select')
+        #self.combo.lineEdit.setPlaceholderText("select")
+        
         self.ports = list(serial.tools.list_ports.comports())
         for p in self.ports:
             self.combo.addItem(p[0])
+        
 
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.resize(260, 464)
+        #self.save_button.move(150,50)
+        self.connect_button.setStyleSheet("""
+            QPushButton { background-color: #2E3D50;color:#ffffff; border:  1px solid white; font-weight: regular; font-size: 15pt;font-family: Calibri;}
+            QPushButton:hover{ background-color: #2E3D50; color:#ffffff;border: 3px solid white; font-weight: bold; font-size: 15pt;font-family: Calibri;}
+            """)
 
         self.sense_label = QLabel(self)
         self.sense_label.setText('Sensitivity')
@@ -85,15 +97,17 @@ class CWidget(QWidget):
         self.threshold_value.resize(260, 464)
 
         self.threshold_slider = QSlider(Qt.Horizontal) 
-        self.threshold_slider.setRange(0, 100)
+        self.threshold_slider.setRange(0, 300)
         
 
         #self.verticalSpacer = QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
 
         self.menu.addWidget(self.combo_label)
         self.menu.addWidget(self.combo)
+        self.menu.addSpacing(5)
+        self.menu.addWidget(self.connect_button)
         
-        self.menu.addSpacing(10)
+        self.menu.addSpacing(20)
         self.menu.addWidget(self.sense_label)
         self.menu.addWidget(self.sense_value)
         self.menu.addWidget(self.sense_slider)
@@ -115,6 +129,7 @@ class CWidget(QWidget):
         vbox.addLayout(self.menu)
         vbox.addWidget(self.canvas)
 
+        self.connect_button.clicked.connect(self.port_connect)
         self.save_button.clicked.connect(self.save_csv)
         self.threshold_slider.setValue(0)
         self.threshold_slider.valueChanged.connect(self.threshold_slider_value_changed)
@@ -124,11 +139,11 @@ class CWidget(QWidget):
         self.sense_slider.valueChanged.connect(self.sense_slider_value_changed)
         self.sense_value.textChanged.connect(self.sense_value_changed)
 
-        self.combo.currentTextChanged.connect(self.onChanged)    
+        self.combo.activated[str].connect(self.onChanged)    
         #self.combo.highlighted.connect(self.onClicked) 
 
         self.setLayout(vbox)
-        self.setGeometry(0,0,800,800)
+        self.setGeometry(50,50,800,800)
          
         # 1~1 중 1번째(1,1,1)  서브 챠트 생성
         # self.ax = self.fig.add_subplot(1,1,1)           
@@ -143,6 +158,25 @@ class CWidget(QWidget):
         self.canvas.draw()
         self.show()   
 
+    def port_connect(self):
+        try : 
+            self.ser  = serial.Serial(self.port_num, baudrate= 115200, 
+                timeout=2.5, 
+                parity=serial.PARITY_NONE, 
+                bytesize=serial.EIGHTBITS, 
+                stopbits=serial.STOPBITS_ONE
+                )
+            self.connect_status = 1
+        except:
+            try : 
+                print(self.port_num)
+                print("port error")
+                
+            except:
+                print("port error")
+        
+
+
     def save_csv(self,):
         f = open('./data/{}.csv'.format(datetime.datetime.now().strftime("%m-%d-%Y-%H-%M-%S")), 'w', encoding='utf-8', newline='')
         wr = csv.writer(f)
@@ -152,15 +186,8 @@ class CWidget(QWidget):
 
 
     def onChanged(self, text):
-        self.ser  = serial.Serial("COM3", baudrate= 115200, 
-            timeout=2.5, 
-            parity=serial.PARITY_NONE, 
-            bytesize=serial.EIGHTBITS, 
-            stopbits=serial.STOPBITS_ONE
-            )
-        
-        self.ani = animation.FuncAnimation(self.fig, self.updatefig, blit=True)
-        self.canvas.draw()
+        print(text)
+        self.port_num = text
 
         
 
@@ -210,42 +237,42 @@ class CWidget(QWidget):
     def closeEvent(self, e):
         pass
 
-    def receive_data():
+    def receive_data(self,):
         temp = 0
         while True:
-            data = ser.readline().decode("utf-8")
+            try :
+                data = self.ser.readline().decode("utf-8")
+                
+                #print(data)
+                data = str(data).replace('\r\n', ' ').split(' ')[:-3]
+                
+                data[1:] = list(map(int, data[1:]))
+                data[1:] = np.divide(data[1:],100)
+                
 
-            data = str(data).replace('\r\n', ' ').split(' ')[:-3]
-            
-            data[1:] = list(map(int, data[1:]))
-            data[1:] = np.divide(data[1:],100)
-            
-            try : 
-                #print(data_set)
-                pass
-            except : 
-                pass
+                if 'a' in data:
+                    data_set = np.array(data[1:])
+                    temp = 1
 
+                elif 'b' in data and temp==1:
+                    data_set = np.vstack([data_set, data[1:]])
 
-            if 'a' in data:
-                data_set = np.array(data[1:])
-                temp = 1
-
-            elif 'b' in data and temp==1:
-                data_set = np.vstack([data_set, data[1:]])
-
-            elif 'c' in data and temp==1:
-                data_set = np.vstack([data_set, data[1:]])
-                #print(data_set.shape)
-                return data_set
-
+                elif 'c' in data and temp==1:
+                    data_set = np.vstack([data_set, data[1:]])
+                    #print(data_set.shape)
+                    return data_set
+            except:
+                continue    
             #else :
             #    print(data)
 
     def updatefig(self,*args):
-        #c= receive_data()
-        #print('hi')
-        c = np.random.randn(64,32)
+        if self.connect_status ==1 :
+            c= self.receive_data()
+        
+        if self.connect_status == 0:
+            c = np.random.uniform(0,1,(64,32))
+        
         c = self.Sensitivity(c)
         c = self.Threshold(c)
         self.data = c  
@@ -256,7 +283,7 @@ class CWidget(QWidget):
         return np.power(self.sense_slider.value(), data)
 
     def Threshold(self, data):
-        data[data <= self.threshold_slider.value()] = 0
+        data[data <= self.threshold_slider.value()/100] = 0
         return data
 
 if __name__ == '__main__':

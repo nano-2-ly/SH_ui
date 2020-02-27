@@ -27,7 +27,7 @@ class CWidget(QWidget):
         self.ax = self.fig.add_subplot(111)      
         
         self.im = self.ax.imshow(self.arr[0], animated=True, vmin=0, vmax=100)
-        self.fig.colorbar(self.im,label='pressure')
+        self.fig.colorbar(self.im,label='pressure(mmHg)')
         self.canvas = FigureCanvasQTAgg(self.fig)
         
 
